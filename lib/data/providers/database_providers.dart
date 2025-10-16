@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/db/daos/contacts_dao.dart';
 import 'package:whoodata/data/db/daos/events_dao.dart';
+import 'package:whoodata/services/export_service.dart';
 import 'package:whoodata/services/image_service.dart';
 
 /// Provider for the app database singleton
@@ -80,4 +81,14 @@ class DateRangeFilter {
 /// Provider for ImageService
 final imageServiceProvider = Provider<ImageService>((ref) {
   return ImageService();
+});
+
+/// Provider for ExportService
+final exportServiceProvider = Provider<ExportService>((ref) {
+  final database = ref.watch(databaseProvider);
+  final imageService = ref.watch(imageServiceProvider);
+  return ExportService(
+    database: database,
+    imageService: imageService,
+  );
 });
