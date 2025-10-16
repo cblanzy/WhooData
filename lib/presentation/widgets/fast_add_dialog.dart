@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
 
@@ -132,7 +133,16 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
       );
 
       if (mounted) {
-        Navigator.of(context).pop(true);
+        // Check if we're in a dialog or full screen
+        final route = ModalRoute.of(context);
+        if (route != null && route.isFirst) {
+          // Full screen - navigate to contacts
+          context.go('/contacts');
+        } else {
+          // Dialog - just pop
+          Navigator.of(context).pop(true);
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Contact added successfully!')),
         );

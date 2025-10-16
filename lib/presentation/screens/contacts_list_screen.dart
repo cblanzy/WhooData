@@ -47,7 +47,7 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
     final selectedEventId = ref.watch(selectedEventFilterProvider);
 
     return Scaffold(
-      appBar: appBarWithBrand(context),
+      appBar: appBarWithBrand(context, title: 'Contacts', showHomeButton: true),
       body: Column(
         children: [
           // Search bar
