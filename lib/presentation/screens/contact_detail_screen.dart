@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/db/daos/contacts_dao.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
+import 'package:whoodata/presentation/widgets/contact_avatar.dart';
 
 class ContactDetailScreen extends ConsumerWidget {
   const ContactDetailScreen({required this.contactId, super.key});
@@ -79,10 +80,11 @@ class ContactDetailScreen extends ConsumerWidget {
 
         final contact = contactWithEvent.contact;
         final event = contactWithEvent.event;
+        final fullName = '${contact.firstName} ${contact.lastName}'.trim();
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(contact.fullName),
+            title: Text(fullName),
             actions: [
               IconButton(
                 icon: const Icon(Icons.delete_outline),
@@ -219,21 +221,18 @@ class ContactDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context, Contact contact) {
+    final fullName = '${contact.firstName} ${contact.lastName}'.trim();
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Row(
         children: [
-          CircleAvatar(
+          ContactAvatar(
+            firstName: contact.firstName,
+            lastName: contact.lastName,
+            middleInitial: contact.middleInitial,
+            photoPath: contact.personPhotoPath,
             radius: 40,
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            child: Text(
-              contact.fullName.isNotEmpty
-                  ? contact.fullName[0].toUpperCase()
-                  : '?',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -241,7 +240,7 @@ class ContactDetailScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  contact.fullName,
+                  fullName,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 4),
@@ -422,12 +421,13 @@ class ContactDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     Contact contact,
   ) async {
+    final fullName = '${contact.firstName} ${contact.lastName}'.trim();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Contact'),
         content: Text(
-          'Are you sure you want to delete ${contact.fullName}? '
+          'Are you sure you want to delete $fullName? '
           'This action cannot be undone.',
         ),
         actions: [
@@ -465,7 +465,7 @@ class ContactDetailScreen extends ConsumerWidget {
           context.go('/');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${contact.fullName} deleted'),
+              content: Text('$fullName deleted'),
             ),
           );
         }

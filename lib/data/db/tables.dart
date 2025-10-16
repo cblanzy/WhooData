@@ -12,7 +12,10 @@ class Contacts extends Table {
   TextColumn get id => text()(); // uuid
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
-  TextColumn get fullName => text()();
+  TextColumn get firstName => text()();
+  TextColumn get lastName => text()();
+  TextColumn get middleInitial =>
+      text().withLength(min: 0, max: 1).withDefault(const Constant(''))();
   TextColumn get phone => text().nullable()();
   TextColumn get email => text().nullable()();
   DateTimeColumn get dateMet => dateTime()(); // store at local midnight

@@ -15,7 +15,9 @@ class FastAddDialog extends ConsumerStatefulWidget {
 
 class _FastAddDialogState extends ConsumerState<FastAddDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _middleInitialController = TextEditingController();
   final _eventController = TextEditingController();
 
   DateTime _dateMet = DateTime.now();
@@ -25,7 +27,9 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _middleInitialController.dispose();
     _eventController.dispose();
     super.dispose();
   }
@@ -118,8 +122,10 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
 
       // Create contact
       await contactsDao.createContact(
-        fullName: _nameController.text,
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
         dateMet: _dateMet,
+        middleInitial: _middleInitialController.text,
         eventId: eventId,
         cardFrontPath: cardFrontPath,
         personPhotoPath: personPhotoPath,
@@ -161,19 +167,48 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
               ),
               const SizedBox(height: 24),
 
-              // Name field
+              // First Name field
               TextFormField(
-                controller: _nameController,
+                controller: _firstNameController,
                 decoration: const InputDecoration(
-                  labelText: 'Name *',
+                  labelText: 'First Name *',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
+                    return 'Please enter a first name';
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 16),
+
+              // Last Name field
+              TextFormField(
+                controller: _lastNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Last Name *',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a last name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Middle Initial field
+              TextFormField(
+                controller: _middleInitialController,
+                decoration: const InputDecoration(
+                  labelText: 'Middle Initial',
+                  border: OutlineInputBorder(),
+                  hintText: 'Optional',
+                ),
+                maxLength: 1,
+                textCapitalization: TextCapitalization.characters,
               ),
               const SizedBox(height: 16),
 

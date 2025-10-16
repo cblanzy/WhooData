@@ -17,7 +17,8 @@
       "Bash(del NUL)",
       "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: WhooDat(a)? Flutter app scaffold + Work Order B\n\nComplete Flutter Android project for event-first people management with\noptional business card OCR scanning.\n\n## Work Order A - Project Scaffold\n- Project structure with pubspec.yaml and all dependencies\n- Branding system with build-time configuration\n- go_router navigation with 5 main routes\n- Drift database schema (Events and Contacts tables)\n- DAO stubs for database access\n- Service stubs (OCR, Image, Export)\n- Placeholder UI screens for all routes\n- GitHub Actions CI workflow\n- Zero lint errors with very_good_analysis\n\n## Work Order B - Database & UI Implementation\n- EventsDao: Full CRUD with case-insensitive unique name validation\n- ContactsDao: Advanced search/filter with reactive streams\n- Riverpod providers for state management\n- ContactsListScreen: Real-time search, event filters, empty states\n- Stream-based reactive queries for live updates\n- Proper error handling and loading states\n\n## Tech Stack\n- Flutter 3.24+ with Material 3\n- Riverpod for state management\n- Drift (SQLite) for local database\n- go_router for navigation\n- uuid for ID generation\n\n## Next Steps\n- Work Order C: ImageService implementation\n- Work Order D: OcrService with ML Kit\n- Work Order E: Quick Edit & swipe actions\n- Work Order F: Export/Import functionality\n- Work Order G: Polish & accessibility\n- Work Order H: Tests & CI validation\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(flutter test:*)"
     ],
     "deny": [],
     "ask": []

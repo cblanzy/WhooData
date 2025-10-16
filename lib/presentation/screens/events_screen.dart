@@ -7,7 +7,7 @@ class EventsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appBarWithBrand(context, title: 'Events'),
+      appBar: appBarWithBrand(context, title: 'Events', showHomeButton: true),
       body: const Center(child: Text('Manage events here')),
     );
   }

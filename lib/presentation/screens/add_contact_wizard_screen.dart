@@ -7,7 +7,11 @@ class AddContactWizardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appBarWithBrand(context, title: 'Add Contact'),
+      appBar: appBarWithBrand(
+        context,
+        title: 'Add Contact',
+        showHomeButton: true,
+      ),
       body: const Center(child: Text('Wizard steps here')),
     );
   }

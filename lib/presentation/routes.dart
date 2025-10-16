@@ -35,8 +35,26 @@ final GoRouter appRouter = GoRouter(
   ],
 );
 
-PreferredSizeWidget appBarWithBrand(BuildContext context, {String? title}) {
+PreferredSizeWidget appBarWithBrand(
+  BuildContext context, {
+  String? title,
+  bool showHomeButton = false,
+}) {
   return AppBar(
+    leading: showHomeButton
+        ? IconButton(
+            icon: const Icon(Icons.home),
+            onPressed: () => context.go('/'),
+            tooltip: 'Home',
+          )
+        : null,
     title: Text(title ?? AppBrand.appName),
+    actions: [
+      IconButton(
+        icon: const Icon(Icons.settings),
+        onPressed: () => context.go('/settings'),
+        tooltip: 'Settings',
+      ),
+    ],
   );
 }

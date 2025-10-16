@@ -25,8 +25,10 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
 
     // Apply filters
     if (nameQuery != null && nameQuery.isNotEmpty) {
+      final lowerQuery = nameQuery.toLowerCase();
       query.where(
-        contacts.fullName.lower().contains(nameQuery.toLowerCase()),
+        contacts.firstName.lower().contains(lowerQuery) |
+            contacts.lastName.lower().contains(lowerQuery),
       );
     }
 
@@ -72,8 +74,10 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
 
   /// Create a new contact
   Future<String> createContact({
-    required String fullName,
+    required String firstName,
+    required String lastName,
     required DateTime dateMet,
+    String middleInitial = '',
     String? eventId,
     String? phone,
     String? email,
@@ -90,7 +94,9 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
     await into(contacts).insert(
       ContactsCompanion.insert(
         id: id,
-        fullName: fullName,
+        firstName: firstName,
+        lastName: lastName,
+        middleInitial: Value(middleInitial),
         dateMet: dateMet,
         createdAt: Value(now),
         updatedAt: Value(now),
@@ -111,7 +117,9 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
   /// Update a contact
   Future<void> updateContact(
     String id, {
-    String? fullName,
+    String? firstName,
+    String? lastName,
+    String? middleInitial,
     DateTime? dateMet,
     String? eventId,
     String? phone,
@@ -125,7 +133,10 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
   }) async {
     await (update(contacts)..where((t) => t.id.equals(id))).write(
       ContactsCompanion(
-        fullName: fullName != null ? Value(fullName) : const Value.absent(),
+        firstName: firstName != null ? Value(firstName) : const Value.absent(),
+        lastName: lastName != null ? Value(lastName) : const Value.absent(),
+        middleInitial:
+            middleInitial != null ? Value(middleInitial) : const Value.absent(),
         dateMet: dateMet != null ? Value(dateMet) : const Value.absent(),
         eventId: Value(eventId),
         phone: Value(phone),
@@ -172,8 +183,11 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
     final query = select(contacts);
 
     if (nameQuery != null && nameQuery.isNotEmpty) {
+      final lowerQuery = nameQuery.toLowerCase();
       query.where(
-        (t) => t.fullName.lower().contains(nameQuery.toLowerCase()),
+        (t) =>
+            t.firstName.lower().contains(lowerQuery) |
+            t.lastName.lower().contains(lowerQuery),
       );
     }
 

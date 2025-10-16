@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
 import 'package:whoodata/presentation/routes.dart';
+import 'package:whoodata/presentation/widgets/contact_avatar.dart';
 import 'package:whoodata/presentation/widgets/fast_add_dialog.dart';
 
 class ContactsListScreen extends ConsumerStatefulWidget {
@@ -218,16 +219,16 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
 
   Widget _buildContactTile(BuildContext context, Contact contact) {
     final dateFormat = DateFormat('MMM d, yyyy');
+    final fullName = '${contact.firstName} ${contact.lastName}'.trim();
 
     return ListTile(
-      leading: CircleAvatar(
-        child: Text(
-          contact.fullName.isNotEmpty
-              ? contact.fullName[0].toUpperCase()
-              : '?',
-        ),
+      leading: ContactAvatar(
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        middleInitial: contact.middleInitial,
+        photoPath: contact.personPhotoPath,
       ),
-      title: Text(contact.fullName),
+      title: Text(fullName),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
