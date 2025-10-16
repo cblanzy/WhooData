@@ -1,4 +1,4 @@
-import 'package:riverpod/riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/db/daos/contacts_dao.dart';
 import 'package:whoodata/data/db/daos/events_dao.dart';
@@ -39,28 +39,50 @@ final allEventsProvider = StreamProvider<List<Event>>((ref) async* {
   // For now, we'll just return the initial list
 });
 
-/// State provider for search query
-final searchQueryProvider = Provider.autoDispose<StateController<String>>(
-  (ref) => StateController(''),
+/// Search query state
+class SearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void update(String value) => state = value;
+}
+
+final searchQueryProvider =
+    NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
+
+/// Selected event filter state
+class SelectedEventFilterNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void update(String? value) => state = value;
+}
+
+final selectedEventFilterProvider =
+    NotifierProvider<SelectedEventFilterNotifier, String?>(
+  SelectedEventFilterNotifier.new,
 );
 
-/// State provider for selected event filter
-final selectedEventFilterProvider = Provider.autoDispose<StateController<String?>>(
-  (ref) => StateController(null),
-);
+/// Date range filter state
+class DateRangeFilterNotifier extends Notifier<DateRangeFilter> {
+  @override
+  DateRangeFilter build() => const DateRangeFilter();
 
-/// State provider for date range filter - using a custom class for tuple
+  void update(DateRangeFilter value) => state = value;
+}
+
 final dateRangeFilterProvider =
-    Provider.autoDispose<StateController<DateRangeFilter>>(
-  (ref) => StateController(const DateRangeFilter()),
+    NotifierProvider<DateRangeFilterNotifier, DateRangeFilter>(
+  DateRangeFilterNotifier.new,
 );
 
 /// Provider for filtered contacts based on search and filters
-final filteredContactsProvider = StreamProvider.autoDispose<List<Contact>>((ref) {
+final filteredContactsProvider =
+    StreamProvider.autoDispose<List<Contact>>((ref) {
   final dao = ref.watch(contactsDaoProvider);
-  final searchQuery = ref.watch(searchQueryProvider).state;
-  final eventId = ref.watch(selectedEventFilterProvider).state;
-  final dateRange = ref.watch(dateRangeFilterProvider).state;
+  final searchQuery = ref.watch(searchQueryProvider);
+  final eventId = ref.watch(selectedEventFilterProvider);
+  final dateRange = ref.watch(dateRangeFilterProvider);
 
   return dao.watchFilteredContacts(
     nameQuery: searchQuery.isEmpty ? null : searchQuery,

@@ -44,7 +44,22 @@ jobs:
             --dart-define WEBSITE="${{ env.WEBSITE }}" \
             --dart-define PRIVACY_URL="${{ env.PRIVACY_URL }}" \
             --dart-define TERMS_URL="${{ env.TERMS_URL }}"
+      - name: Build AAB (release)
+        run: |
+          flutter build appbundle \
+            --release \
+            --dart-define APP_NAME="${{ env.APP_NAME }}" \
+            --dart-define BRAND_KEY="${{ env.BRAND_KEY }}" \
+            --dart-define COMPANY="${{ env.COMPANY }}" \
+            --dart-define SUPPORT_EMAIL="${{ env.SUPPORT_EMAIL }}" \
+            --dart-define WEBSITE="${{ env.WEBSITE }}" \
+            --dart-define PRIVACY_URL="${{ env.PRIVACY_URL }}" \
+            --dart-define TERMS_URL="${{ env.TERMS_URL }}"
       - uses: actions/upload-artifact@v4
         with:
           name: whoodat-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whoodat-aab
+          path: build/app/outputs/bundle/release/app-release.aab

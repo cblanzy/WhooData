@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
 import 'package:whoodata/presentation/routes.dart';
 import 'package:whoodata/presentation/widgets/fast_add_dialog.dart';
@@ -16,6 +18,20 @@ class ContactsListScreen extends ConsumerStatefulWidget {
 
 class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
   final _searchController = TextEditingController();
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = 'v${packageInfo.version}+${packageInfo.buildNumber}';
+    });
+  }
 
   @override
   void dispose() {
@@ -27,7 +43,7 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
   Widget build(BuildContext context) {
     final contactsAsync = ref.watch(filteredContactsProvider);
     final eventsAsync = ref.watch(allEventsProvider);
-    final selectedEventId = ref.watch(selectedEventFilterProvider).state;
+    final selectedEventId = ref.watch(selectedEventFilterProvider);
 
     return Scaffold(
       appBar: appBarWithBrand(context),
@@ -46,7 +62,7 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
-                          ref.read(searchQueryProvider).state = '';
+                          ref.read(searchQueryProvider.notifier).update('');
                         },
                       )
                     : null,
@@ -55,7 +71,7 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                 ),
               ),
               onChanged: (value) {
-                ref.read(searchQueryProvider).state = value;
+                ref.read(searchQueryProvider.notifier).update(value);
               },
             ),
           ),
@@ -77,7 +93,9 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                         label: const Text('All Events'),
                         selected: selectedEventId == null,
                         onSelected: (selected) {
-                          ref.read(selectedEventFilterProvider).state = null;
+                          ref
+                              .read(selectedEventFilterProvider.notifier)
+                              .update(null);
                         },
                       ),
                     ),
@@ -88,8 +106,9 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                           label: Text(event.name),
                           selected: selectedEventId == event.id,
                           onSelected: (selected) {
-                            ref.read(selectedEventFilterProvider).state =
-                                selected ? event.id : null;
+                            ref
+                                .read(selectedEventFilterProvider.notifier)
+                                .update(selected ? event.id : null);
                           },
                         ),
                       );
@@ -133,11 +152,24 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
               ),
             ),
           ),
+
+          // Version display at bottom
+          if (_version.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              alignment: Alignment.center,
+              child: Text(
+                _version,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+              ),
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final result = await showDialog<bool>(
+          await showDialog<bool>(
             context: context,
             builder: (context) => const FastAddDialog(),
           );
@@ -151,9 +183,9 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
   }
 
   Widget _buildEmptyState() {
-    final searchQuery = ref.watch(searchQueryProvider).state;
+    final searchQuery = ref.watch(searchQueryProvider);
     final hasFilters = searchQuery.isNotEmpty ||
-        ref.watch(selectedEventFilterProvider).state != null;
+        ref.watch(selectedEventFilterProvider) != null;
 
     return Center(
       child: Column(
