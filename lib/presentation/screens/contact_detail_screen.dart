@@ -85,6 +85,11 @@ class ContactDetailScreen extends ConsumerWidget {
 
         return Scaffold(
           appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.go('/contacts'),
+              tooltip: 'Back to Contacts',
+            ),
             title: Text(fullName),
             actions: [
               IconButton(
@@ -94,6 +99,17 @@ class ContactDetailScreen extends ConsumerWidget {
                   ref,
                   contact,
                 ),
+                tooltip: 'Delete Contact',
+              ),
+              IconButton(
+                icon: const Icon(Icons.home),
+                onPressed: () => context.go('/'),
+                tooltip: 'Home',
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => context.go('/settings'),
+                tooltip: 'Settings',
               ),
             ],
           ),

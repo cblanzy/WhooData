@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
@@ -92,9 +93,14 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
   }
 
   Future<void> _captureCardFront() async {
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
     final imageService = ref.read(imageServiceProvider);
     try {
-      final image = await imageService.captureFromCamera();
+      final image = source == ImageSource.camera
+          ? await imageService.captureFromCamera()
+          : await imageService.pickFromGallery();
       if (image != null) {
         setState(() {
           _newCardFrontImage = image;
@@ -111,9 +117,14 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
   }
 
   Future<void> _captureCardBack() async {
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
     final imageService = ref.read(imageServiceProvider);
     try {
-      final image = await imageService.captureFromCamera();
+      final image = source == ImageSource.camera
+          ? await imageService.captureFromCamera()
+          : await imageService.pickFromGallery();
       if (image != null) {
         setState(() {
           _newCardBackImage = image;
@@ -130,9 +141,14 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
   }
 
   Future<void> _capturePersonPhoto() async {
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
     final imageService = ref.read(imageServiceProvider);
     try {
-      final image = await imageService.captureFromCamera();
+      final image = source == ImageSource.camera
+          ? await imageService.captureFromCamera()
+          : await imageService.pickFromGallery();
       if (image != null) {
         setState(() {
           _newPersonPhoto = image;
@@ -146,6 +162,30 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
         );
       }
     }
+  }
+
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose Image Source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () => Navigator.of(context).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _saveContact() async {
