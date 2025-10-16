@@ -7,6 +7,7 @@ import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
 import 'package:whoodata/presentation/routes.dart';
 import 'package:whoodata/presentation/widgets/contact_avatar.dart';
+import 'package:whoodata/presentation/widgets/edit_contact_dialog.dart';
 import 'package:whoodata/presentation/widgets/fast_add_dialog.dart';
 
 class ContactsListScreen extends ConsumerStatefulWidget {
@@ -221,26 +222,208 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
     final dateFormat = DateFormat('MMM d, yyyy');
     final fullName = '${contact.firstName} ${contact.lastName}'.trim();
 
-    return ListTile(
-      leading: ContactAvatar(
-        firstName: contact.firstName,
-        lastName: contact.lastName,
-        middleInitial: contact.middleInitial,
-        photoPath: contact.personPhotoPath,
+    return Dismissible(
+      key: Key(contact.id),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.endToStart) {
+          // Swipe left - show notes modal
+          await _showNotesModal(context, contact);
+          return false; // Don't actually dismiss
+        } else if (direction == DismissDirection.startToEnd) {
+          // Swipe right - delete with confirmation
+          return _showDeleteConfirmation(context, contact);
+        }
+        return false;
+      },
+      background: Container(
+        color: Colors.red,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        child: const Icon(Icons.delete, color: Colors.white, size: 32),
       ),
-      title: Text(fullName),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (contact.phone != null) Text(contact.phone!),
-          Text(
-            'Met: ${dateFormat.format(contact.dateMet)}',
-            style: Theme.of(context).textTheme.bodySmall,
+      secondaryBackground: Container(
+        color: Colors.blue,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(Icons.note, color: Colors.white, size: 32),
+      ),
+      child: ListTile(
+        leading: ContactAvatar(
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          middleInitial: contact.middleInitial,
+          photoPath: contact.personPhotoPath,
+        ),
+        title: Text(fullName),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (contact.phone != null) Text(contact.phone!),
+            Text(
+              'Met: ${dateFormat.format(contact.dateMet)}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.go('/contact/${contact.id}'),
+      ),
+    );
+  }
+
+  Future<void> _showNotesModal(BuildContext context, Contact contact) async {
+    final fullName = '${contact.firstName} ${contact.lastName}'.trim();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      fullName,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Notes',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.grey,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: contact.notes.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.note_outlined,
+                              size: 64,
+                              color: Colors.grey.shade300,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No notes yet',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        controller: scrollController,
+                        child: Text(
+                          contact.notes,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await showDialog<bool>(
+                      context: context,
+                      builder: (context) => EditContactDialog(contact: contact),
+                    );
+                  },
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit Contact'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _showDeleteConfirmation(
+    BuildContext context,
+    Contact contact,
+  ) async {
+    final fullName = '${contact.firstName} ${contact.lastName}'.trim();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Contact'),
+        content: Text(
+          'Are you sure you want to delete $fullName? '
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
           ),
         ],
       ),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => context.go('/contact/${contact.id}'),
     );
+
+    if (confirmed ?? false) {
+      try {
+        final contactsDao = ref.read(contactsDaoProvider);
+        final imageService = ref.read(imageServiceProvider);
+
+        // Delete associated images
+        await imageService.deleteContactImages(
+          cardFrontPath: contact.cardFrontPath,
+          cardBackPath: contact.cardBackPath,
+          personPhotoPath: contact.personPhotoPath,
+        );
+
+        // Delete contact from database
+        await contactsDao.deleteContact(contact.id);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$fullName deleted')),
+          );
+        }
+        return true;
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting contact: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+        return false;
+      }
+    }
+    return false;
   }
 }
