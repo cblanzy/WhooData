@@ -7,7 +7,6 @@ import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
 import 'package:whoodata/presentation/routes.dart';
 import 'package:whoodata/presentation/widgets/contact_avatar.dart';
-import 'package:whoodata/presentation/widgets/edit_contact_dialog.dart';
 import 'package:whoodata/presentation/widgets/fast_add_dialog.dart';
 
 class ContactsListScreen extends ConsumerStatefulWidget {
@@ -273,93 +272,121 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
 
   Future<void> _showNotesModal(BuildContext context, Contact contact) async {
     final fullName = '${contact.firstName} ${contact.lastName}'.trim();
+    final notesController = TextEditingController(text: contact.notes);
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      fullName,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Notes',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: contact.notes.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.note_outlined,
-                              size: 64,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No notes yet',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        controller: scrollController,
-                        child: Text(
-                          contact.notes,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) => Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        fullName,
+                        style: Theme.of(context).textTheme.headlineSmall,
                       ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                    await showDialog<bool>(
-                      context: context,
-                      builder: (context) => EditContactDialog(contact: contact),
-                    );
-                  },
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Edit Contact'),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        notesController.dispose();
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  'Quick Edit Notes',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.grey,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: TextField(
+                    controller: notesController,
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                    decoration: const InputDecoration(
+                      hintText: 'Add notes about this contact...',
+                      border: OutlineInputBorder(),
+                    ),
+                    autofocus: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          notesController.dispose();
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () async {
+                          try {
+                            final contactsDao = ref.read(contactsDaoProvider);
+                            await contactsDao.updateContact(
+                              contact.id,
+                              notes: notesController.text,
+                            );
+
+                            if (context.mounted) {
+                              notesController.dispose();
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Notes saved successfully!'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error saving notes: $e'),
+                                  backgroundColor:
+                                      Theme.of(context).colorScheme.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+
+    notesController.dispose();
   }
 
   Future<bool> _showDeleteConfirmation(

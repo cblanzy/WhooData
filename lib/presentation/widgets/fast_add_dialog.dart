@@ -232,9 +232,37 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
                       }
                       return events
                           .map((e) => e.name)
-                          .where((name) => name
-                              .toLowerCase()
-                              .contains(textEditingValue.text.toLowerCase()));
+                          .where(
+                            (name) => name.toLowerCase().contains(
+                                  textEditingValue.text.toLowerCase(),
+                                ),
+                          );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxHeight: 200,
+                              maxWidth: 400,
+                            ),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              itemBuilder: (context, index) {
+                                final option = options.elementAt(index);
+                                return ListTile(
+                                  title: Text(option),
+                                  onTap: () => onSelected(option),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
                     },
                     onSelected: (selection) {
                       _eventController.text = selection;
