@@ -64,3 +64,23 @@ jobs:
         with:
           name: whoodat-aab
           path: build/app/outputs/bundle/release/app-release.aab
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: github.ref == 'refs/heads/master'
+        with:
+          tag_name: latest
+          name: Latest Build
+          body: |
+            Automated build from commit ${{ github.sha }}
+
+            **Version:** ${{ github.run_number }}
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.event.head_commit.message }}
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+          prerelease: false
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
