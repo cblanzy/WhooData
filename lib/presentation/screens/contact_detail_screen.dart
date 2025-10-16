@@ -9,6 +9,7 @@ import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/db/daos/contacts_dao.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
 import 'package:whoodata/presentation/widgets/contact_avatar.dart';
+import 'package:whoodata/presentation/widgets/edit_contact_dialog.dart';
 
 class ContactDetailScreen extends ConsumerWidget {
   const ContactDetailScreen({required this.contactId, super.key});
@@ -204,13 +205,17 @@ class ContactDetailScreen extends ConsumerWidget {
             ),
           ),
           floatingActionButton: FloatingActionButton.extended(
-            onPressed: () {
-              // TODO(edit): Navigate to edit screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Edit functionality coming soon!'),
-                ),
+            onPressed: () async {
+              final result = await showDialog<bool>(
+                context: context,
+                builder: (context) => EditContactDialog(contact: contact),
               );
+
+              // Refresh the screen if contact was updated
+              if ((result ?? false) && context.mounted) {
+                // Trigger a rebuild by navigating to same route
+                context.go('/contact/${contact.id}');
+              }
             },
             icon: const Icon(Icons.edit),
             label: const Text('Edit'),
