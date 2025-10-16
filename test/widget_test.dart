@@ -14,7 +14,8 @@ void main() {
     // Verify that the app bar is present
     expect(find.text('WhooDat(a)?'), findsOneWidget);
 
-    // Verify the FAB is present
-    expect(find.text('Fast Add'), findsOneWidget);
+    // Verify the home screen options are present
+    expect(find.text('Quick Add'), findsOneWidget);
+    expect(find.text('Contacts'), findsOneWidget);
   });
 }
