@@ -4,6 +4,7 @@ import 'package:whoodata/data/db/daos/contacts_dao.dart';
 import 'package:whoodata/data/db/daos/events_dao.dart';
 import 'package:whoodata/services/export_service.dart';
 import 'package:whoodata/services/image_service.dart';
+import 'package:whoodata/services/ocr_service.dart';
 
 /// Provider for the app database singleton
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -91,4 +92,9 @@ final exportServiceProvider = Provider<ExportService>((ref) {
     database: database,
     imageService: imageService,
   );
+});
+
+/// Provider for OcrService
+final ocrServiceProvider = Provider<OcrService>((ref) {
+  return OcrService();
 });

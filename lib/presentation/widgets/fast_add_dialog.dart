@@ -381,16 +381,29 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
 
               // Action buttons
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                  // Card Scan button - opens wizard
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      context.go('/add');
+                    },
+                    icon: const Icon(Icons.document_scanner),
+                    label: const Text('Card Scan'),
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _saveContact,
-                    child: const Text('Save'),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: _saveContact,
+                        child: const Text('Save'),
+                      ),
+                    ],
                   ),
                 ],
               ),

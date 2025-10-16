@@ -176,6 +176,52 @@ class ContactDetailScreen extends ConsumerWidget {
                   ),
                 ],
 
+                // OCR Data section
+                if (contact.ocrRawText != null && contact.ocrRawText!.isNotEmpty) ...[
+                  const Divider(),
+                  _buildSection(
+                    context,
+                    'OCR Data',
+                    [
+                      if (contact.ocrConfidence != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.auto_awesome, size: 20, color: Colors.green),
+                              const SizedBox(width: 8),
+                              Text(
+                                'OCR Confidence: ${(contact.ocrConfidence! * 100).round()}%',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 8),
+                      ExpansionTile(
+                        title: const Text('View Raw OCR Text'),
+                        leading: const Icon(Icons.text_snippet),
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            color: Colors.grey[100],
+                            width: double.infinity,
+                            child: Text(
+                              contact.ocrRawText!,
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+
                 // Photos section
                 if (contact.cardFrontPath != null ||
                     contact.cardBackPath != null ||

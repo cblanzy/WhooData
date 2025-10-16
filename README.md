@@ -85,15 +85,35 @@ lib/
 └── services/                  # Business logic services
 ```
 
-## Next Steps (Work Orders B-H)
+## Development Progress
 
-- [ ] **B**: Implement DAOs and filtering queries; wire providers and list screen
-- [ ] **C**: Implement ImageService; hook FAB "+ Card Scan / + Face Photo"
-- [ ] **D**: Implement OcrService with heuristics; add review step
-- [ ] **E**: Implement Quick Edit (long-press sheet) and swipe actions
-- [ ] **F**: Implement export/import with ZIP round-trip tests
-- [ ] **G**: Polish + accessibility + empty states + dark mode
-- [ ] **H**: Add unit, widget, and integration tests; ensure CI green
+### Completed Work Orders
+
+- [x] **A**: Project scaffold with branding, routing, database, and CI
+- [x] **B**: DAOs and filtering queries with Riverpod providers
+- [x] **C**: ImageService with camera/gallery capture and resizing
+- [x] **D**: OcrService with ML Kit text recognition and smart field extraction
+- [x] **E**: Quick Edit (long-press/swipe) and contact editing
+- [x] **F**: Export/import with ZIP (JSON + media files)
+- [x] **G**: UI polish with dark mode, navigation, and Material 3
+
+### Remaining Work Orders
+
+- [ ] **H**: Comprehensive unit, widget, and integration tests
+
+### OCR Feature
+
+The app now includes intelligent business card OCR scanning:
+
+- **4-step wizard** for adding contacts with optional card scanning
+- **ML Kit text recognition** processes cards on-device (privacy-focused)
+- **Smart field extraction**:
+  - Email addresses via regex pattern matching
+  - Phone numbers (10-15 digits with formatting)
+  - Names from largest text block in top third of card
+- **Review step** allows editing before save
+- **Confidence scores** displayed for OCR results
+- **Fallback to manual entry** if OCR fails or user prefers
 
 ## Contributing
 
