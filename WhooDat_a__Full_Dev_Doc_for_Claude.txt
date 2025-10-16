@@ -1,0 +1,502 @@
+# WhooDat(a)? — Full Development Doc for Claude Code
+**Goal:** Generate a complete Flutter Android project focused on remembering people you meet at events. Business card scanning (with OCR) is one capture method—not the only one. The app must be fast to add/edit people (long‑press Quick Edit, swipe actions) and support event‑first organization.
+
+---
+
+## 0) Branding & Name
+- Default public name: **WhooDat(a)?** (configurable).
+- All UI must reference a central branding file; no hardcoded names.
+- Build-time overrides via `--dart-define` supported.
+- Internal package name should be generic (e.g., `com.example.peoplelog`).
+
+---
+
+## 1) Scope (v1)
+- Add people with **Fast Add** (Name, Event, Date Met) via FAB.
+- **Quick Edit**: long‑press list item → bottom sheet; swipe left → Quick Edit; swipe right → Delete (confirm).
+- Optional **business card capture** (front required to scan, back optional) with **on‑device OCR** to prefill name/phone/email.
+- Fields: Name (req), Phone, Email, Date Met (defaults to today), Event (dropdown + inline create), Notes (unlimited).
+- Filter list by **name**, **event**, **date range**.
+- **Offline-first**, local DB (Drift). Export/Import ZIP (JSON + images).
+- Privacy: local only—no network unless user exports.
+
+Non-goals v1: cloud sync, accounts, system contacts write-back.
+
+---
+
+## 2) Tech
+- Flutter (stable), Android minSdk 24+.
+- State: Riverpod. Routing: go_router.
+- DB: Drift (SQLite). OCR: google_mlkit_text_recognition.
+- Images: image_picker + image + path_provider.
+- Export/Import: archive, file_picker, share_plus.
+- Lint: very_good_analysis.
+
+Android permissions: CAMERA, READ_MEDIA_IMAGES (and READ_EXTERNAL_STORAGE for SDK ≤ 32).
+
+---
+
+## 3) Data Model
+**Event**: id (uuid, pk), name (unique case-insensitive), createdAt  
+**Contact**: id (uuid, pk), createdAt, updatedAt, fullName (req), phone?, email?, dateMet (Date), eventId?, notes (Text), cardFrontPath?, cardBackPath?, personPhotoPath?, ocrRawText?, ocrConfidence?, sourceVersion int default 1
+
+Indexes: Contacts(fullName), Contacts(dateMet), Contacts(eventId)  
+Images: `media/cards/{contactId}_{front|back}.jpg`, `media/faces/{contactId}.jpg` (2000px long edge, JPEG q=85)
+
+---
+
+## 4) OCR Strategy
+- Run on front image only.
+- Extract email (regex), phone (10–15 digits), name (largest block near top third without digits/@).
+- Always show a review step; fields editable; store raw OCR text.
+
+---
+
+## 5) Navigation & UX
+Routes: `/` (ContactsList), `/add` (AddContactWizard), `/contact/:id`, `/events`, `/settings`
+
+Home list:
+- Search by name (debounced), event filter, date range filter.
+- Long‑press → **Quick Edit** bottom sheet (Name, Event, Date, Phone, Email, Notes snippet).
+- Swipe left → Quick Edit; swipe right → Delete (confirm).
+- FAB → **Fast Add** dialog (Name, Event, Date Met) with optional **+ Card Scan**, **+ Face Photo**.
+
+Wizard (4 steps): Card Photos → Details → Person Photo → Review & Save
+
+---
+
+## 6) Files & Folders to Generate
+Claude: **Create all files below with these exact paths and contents.**
+
+### 6.1 Root: `pubspec.yaml`
+```yaml
+name: whoodata
+description: Event-first people remembering app with optional business card OCR
+publish_to: "none"
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter: { sdk: flutter }
+  go_router: ^14.0.0
+  flutter_riverpod: ^3.0.0
+  drift: ^2.18.0
+  drift_flutter: ^0.2.0
+  sqflite: ^2.3.0
+  path_provider: ^2.1.3
+  image_picker: ^1.1.0
+  google_mlkit_text_recognition: ^0.13.0
+  image: ^4.2.0
+  share_plus: ^10.0.0
+  archive: ^3.6.1
+  file_picker: ^8.0.0
+  intl: ^0.19.0
+  collection: ^1.18.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  drift_dev: ^2.18.0
+  build_runner: ^2.4.11
+  very_good_analysis: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/branding/default/logo.png
+```
+
+### 6.2 Root: `analysis_options.yaml`
+```yaml
+include: package:very_good_analysis/analysis_options.yaml
+
+linter:
+  rules:
+    public_member_api_docs: false
+```
+
+### 6.3 App Branding — `lib/config/app_brand.dart`
+```dart
+// lib/config/app_brand.dart
+class AppBrand {
+  static const appName = String.fromEnvironment('APP_NAME', defaultValue: 'WhooDat(a)?');
+
+  static const company = String.fromEnvironment('COMPANY', defaultValue: 'Your Company, LLC');
+  static const supportEmail = String.fromEnvironment('SUPPORT_EMAIL', defaultValue: 'support@example.com');
+  static const website = String.fromEnvironment('WEBSITE', defaultValue: 'https://example.com');
+  static const privacyUrl = String.fromEnvironment('PRIVACY_URL', defaultValue: 'https://example.com/privacy');
+  static const termsUrl = String.fromEnvironment('TERMS_URL', defaultValue: 'https://example.com/terms');
+
+  static const brandKey = String.fromEnvironment('BRAND_KEY', defaultValue: 'default');
+  static String logoAsset([double scale = 1]) => 'assets/branding/$brandKey/logo.png';
+}
+```
+
+### 6.4 Routing — `lib/presentation/routes.dart`
+```dart
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:whoodata/config/app_brand.dart';
+import 'screens/contacts_list_screen.dart';
+import 'screens/add_contact_wizard_screen.dart';
+import 'screens/contact_detail_screen.dart';
+import 'screens/events_screen.dart';
+import 'screens/settings_screen.dart';
+
+final GoRouter appRouter = GoRouter(
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const ContactsListScreen(),
+    ),
+    GoRoute(
+      path: '/add',
+      builder: (context, state) => const AddContactWizardScreen(),
+    ),
+    GoRoute(
+      path: '/contact/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return ContactDetailScreen(contactId: id);
+      },
+    ),
+    GoRoute(
+      path: '/events',
+      builder: (context, state) => const EventsScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
+    ),
+  ],
+);
+
+PreferredSizeWidget appBarWithBrand(BuildContext context, {String? title}) {
+  return AppBar(
+    title: Text(title ?? AppBrand.appName),
+  );
+}
+```
+
+### 6.5 App Entry — `lib/main.dart`
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'presentation/routes.dart';
+import 'config/app_brand.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const ProviderScope(child: WhooDataApp()));
+}
+
+class WhooDataApp extends StatelessWidget {
+  const WhooDataApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: AppBrand.appName,
+      theme: ThemeData(
+        colorSchemeSeed: Colors.blue,
+        useMaterial3: true,
+      ),
+      routerConfig: appRouter,
+    );
+  }
+}
+```
+
+### 6.6 Screens — create placeholders (minimal UI to compile)
+
+`lib/presentation/screens/contacts_list_screen.dart`
+```dart
+import 'package:flutter/material.dart';
+import '../routes.dart';
+
+class ContactsListScreen extends StatelessWidget {
+  const ContactsListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: appBarWithBrand(context),
+      body: const Center(child: Text('Contacts list goes here')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.of(context).pushNamed('/add'),
+        label: const Text('Fast Add'),
+        icon: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+```
+
+`lib/presentation/screens/add_contact_wizard_screen.dart`
+```dart
+import 'package:flutter/material.dart';
+import '../routes.dart';
+
+class AddContactWizardScreen extends StatelessWidget {
+  const AddContactWizardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: appBarWithBrand(context, title: 'Add Contact'),
+      body: const Center(child: Text('Wizard steps here')),
+    );
+  }
+}
+```
+
+`lib/presentation/screens/contact_detail_screen.dart`
+```dart
+import 'package:flutter/material.dart';
+import '../routes.dart';
+
+class ContactDetailScreen extends StatelessWidget {
+  final String contactId;
+  const ContactDetailScreen({super.key, required this.contactId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: appBarWithBrand(context, title: 'Contact Detail'),
+      body: Center(child: Text('Detail for $contactId')),
+    );
+  }
+}
+```
+
+`lib/presentation/screens/events_screen.dart`
+```dart
+import 'package:flutter/material.dart';
+import '../routes.dart';
+
+class EventsScreen extends StatelessWidget {
+  const EventsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: appBarWithBrand(context, title: 'Events'),
+      body: const Center(child: Text('Manage events here')),
+    );
+  }
+}
+```
+
+`lib/presentation/screens/settings_screen.dart`
+```dart
+import 'package:flutter/material.dart';
+import '../routes.dart';
+
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: appBarWithBrand(context, title: 'Settings'),
+      body: const Center(child: Text('Export/Import/Privacy here')),
+    );
+  }
+}
+```
+
+### 6.7 Android Launcher Label — `android/app/src/main/res/values/strings.xml`
+```xml
+<resources>
+    <string name="app_name">WhooDat(a)?</string>
+</resources>
+```
+
+### 6.8 GitHub Actions — `.github/workflows/flutter-ci.yml`
+```yaml
+name: Flutter CI
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+env:
+  APP_NAME: "WhooDat(a)?"
+  BRAND_KEY: "eventfocus"
+  COMPANY: "Your Company, LLC"
+  SUPPORT_EMAIL: "support@example.com"
+  WEBSITE: "https://example.com"
+  PRIVACY_URL: "https://example.com/privacy"
+  TERMS_URL: "https://example.com/terms"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test --no-pub
+      - name: Build APK (release)
+        run: |
+          flutter build apk             --release             --dart-define APP_NAME="${{ env.APP_NAME }}"             --dart-define BRAND_KEY="${{ env.BRAND_KEY }}"             --dart-define COMPANY="${{ env.COMPANY }}"             --dart-define SUPPORT_EMAIL="${{ env.SUPPORT_EMAIL }}"             --dart-define WEBSITE="${{ env.WEBSITE }}"             --dart-define PRIVACY_URL="${{ env.PRIVACY_URL }}"             --dart-define TERMS_URL="${{ env.TERMS_URL }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whoodat-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+```
+
+### 6.9 DB Skeleton — Drift (placeholders)
+`lib/data/db/tables.dart`
+```dart
+import 'package:drift/drift.dart';
+
+class Events extends Table {
+  TextColumn get id => text()(); // uuid
+  TextColumn get name => text()(); // enforce uniqueness in DAO
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Contacts extends Table {
+  TextColumn get id => text()(); // uuid
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get fullName => text()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get email => text().nullable()();
+  DateTimeColumn get dateMet => dateTime()(); // store at local midnight
+  TextColumn get eventId => text().nullable().references(Events, #id)();
+  TextColumn get notes => text().withLength(min: 0, max: 100000)();
+  TextColumn get cardFrontPath => text().nullable()();
+  TextColumn get cardBackPath => text().nullable()();
+  TextColumn get personPhotoPath => text().nullable()();
+  TextColumn get ocrRawText => text().nullable()();
+  RealColumn get ocrConfidence => real().nullable()();
+  IntColumn get sourceVersion => integer().withDefault(const Constant(1))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+```
+
+`lib/data/db/app_database.dart`
+```dart
+import 'dart:io';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'tables.dart';
+
+part 'app_database.g.dart';
+
+@DriftDatabase(tables: [Events, Contacts])
+class AppDatabase extends _$AppDatabase {
+  AppDatabase() : super(_openConnection());
+
+  @override
+  int get schemaVersion => 1;
+}
+
+LazyDatabase _openConnection() {
+  return LazyDatabase(() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dir.path, 'whoodata.db'));
+    return NativeDatabase.createInBackground(file);
+  });
+}
+```
+
+**DAOs** (stubs):
+`lib/data/db/daos/contacts_dao.dart`
+```dart
+import 'package:drift/drift.dart';
+import '../app_database.dart';
+
+part 'contacts_dao.g.dart';
+
+@DriftAccessor(tables: [Contacts, Events])
+class ContactsDao extends DatabaseAccessor<AppDatabase> with _$ContactsDaoMixin {
+  ContactsDao(AppDatabase db) : super(db);
+
+  // TODO: CRUD + search(name, eventId, from, to) with combined filters.
+}
+```
+
+`lib/data/db/daos/events_dao.dart`
+```dart
+import 'package:drift/drift.dart';
+import '../app_database.dart';
+
+part 'events_dao.g.dart';
+
+@DriftAccessor(tables: [Events])
+class EventsDao extends DatabaseAccessor<AppDatabase> with _$EventsDaoMixin {
+  EventsDao(AppDatabase db) : super(db);
+
+  // TODO: CRUD + ensure unique (case-insensitive) names in insert/update.
+}
+```
+
+### 6.10 Services (stubs)
+`lib/services/ocr_service.dart`
+```dart
+// TODO: Implement ML Kit recognition with email/phone/name heuristics.
+```
+
+`lib/services/image_service.dart`
+```dart
+// TODO: Capture/pick, resize to 2000px long edge (q=85), save under media/, delete helpers.
+```
+
+`lib/services/export_service.dart`
+```dart
+// TODO: ZIP export/import (contacts.json + media/), idempotent upsert by id.
+```
+
+---
+
+## 7) Git Commands & CI
+- Local build with brand overrides:
+```bash
+flutter build apk   --dart-define APP_NAME="WhooData"   --dart-define BRAND_KEY="eventfocus"
+```
+- Push to GitHub: CI will analyze, test, build, and upload APK artifact.
+
+---
+
+## 8) Work Orders (Claude)
+A) Scaffold project and create all files above exactly as listed.  
+B) Implement DAOs and filtering queries; wire providers and list screen.  
+C) Implement ImageService; hook FAB “+ Card Scan / + Face Photo”.  
+D) Implement OcrService with heuristics; add review step.  
+E) Implement Quick Edit (long‑press sheet) and swipe actions.  
+F) Implement export/import with ZIP round‑trip tests.  
+G) Polish + accessibility + empty states + dark mode.  
+H) Add unit, widget, and integration tests; ensure CI green.
+
+---
+
+## 9) Acceptance Criteria (recap)
+- Long‑press/swipe Quick Edit works; Fast Add ≤10 seconds.
+- Front-only + manual fields saves; Date Met defaults to today.
+- OCR prefill when available; review step editable.
+- Inline Event creation persists and appears immediately.
+- Combined filters function and clear correctly.
+- Delete removes associated media.
+- Export/Import round‑trip reproduces records (by id).
+- 100% offline; privacy page clearly states no network use.

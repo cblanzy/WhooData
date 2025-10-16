@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub get:*)",
+      "Bash(flutter pub run build_runner build:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(powershell:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter create:*)",
+      "Bash(timeout:*)",
+      "Bash(flutter pub:*)",
+      "Bash(git config:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(dir:*)",
+      "Bash(del NUL)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
