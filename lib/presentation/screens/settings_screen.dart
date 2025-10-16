@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
 import 'package:whoodata/data/providers/theme_provider.dart';
 import 'package:whoodata/presentation/routes.dart';
@@ -105,25 +107,45 @@ class SettingsScreen extends ConsumerWidget {
       }
 
       final exportService = ref.read(exportServiceProvider);
-      final zipPath = await exportService.exportData();
+      final tempZipPath = await exportService.exportData();
+
+      // Move ZIP to Downloads folder with a user-friendly name
+      final timestamp = DateTime.now();
+      final filename = 'whoodata_export_'
+          '${timestamp.year}${timestamp.month.toString().padLeft(2, '0')}'
+          '${timestamp.day.toString().padLeft(2, '0')}_'
+          '${timestamp.hour.toString().padLeft(2, '0')}'
+          '${timestamp.minute.toString().padLeft(2, '0')}.zip';
+
+      // Get Downloads directory (or Documents as fallback)
+      Directory? downloadsDir;
+      if (Platform.isAndroid) {
+        // On Android, use external storage Downloads
+        downloadsDir = Directory('/storage/emulated/0/Download');
+        if (!await downloadsDir.exists()) {
+          // Fallback to app documents directory
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
+      } else {
+        // On other platforms, use downloads or documents directory
+        downloadsDir = await getDownloadsDirectory() ??
+            await getApplicationDocumentsDirectory();
+      }
+
+      final finalPath = p.join(downloadsDir.path, filename);
+      await File(tempZipPath).copy(finalPath);
 
       // Close loading dialog
       if (context.mounted) {
         Navigator.of(context).pop();
       }
 
-      // Share the ZIP file
-      await Share.shareXFiles(
-        [XFile(zipPath)],
-        subject: 'WhooDat(a)? Export',
-        text: 'Contact data export from WhooDat(a)?',
-      );
-
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data exported successfully!'),
+          SnackBar(
+            content: Text('Export saved to:\n$finalPath'),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
