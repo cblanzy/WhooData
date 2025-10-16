@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
 import 'package:whoodata/presentation/routes.dart';
+import 'package:whoodata/presentation/widgets/fast_add_dialog.dart';
 
 class ContactsListScreen extends ConsumerStatefulWidget {
   const ContactsListScreen({super.key});
@@ -135,7 +136,14 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/add'),
+        onPressed: () async {
+          final result = await showDialog<bool>(
+            context: context,
+            builder: (context) => const FastAddDialog(),
+          );
+          // Optionally navigate to full wizard
+          // context.go('/add');
+        },
         label: const Text('Fast Add'),
         icon: const Icon(Icons.add),
       ),

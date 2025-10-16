@@ -2,6 +2,7 @@ import 'package:riverpod/riverpod.dart';
 import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/db/daos/contacts_dao.dart';
 import 'package:whoodata/data/db/daos/events_dao.dart';
+import 'package:whoodata/services/image_service.dart';
 
 /// Provider for the app database singleton
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -75,3 +76,8 @@ class DateRangeFilter {
   final DateTime? from;
   final DateTime? to;
 }
+
+/// Provider for ImageService
+final imageServiceProvider = Provider<ImageService>((ref) {
+  return ImageService();
+});
