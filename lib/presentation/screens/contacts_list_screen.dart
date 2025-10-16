@@ -62,7 +62,7 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
-                          ref.read(searchQueryProvider.notifier).update('');
+                          ref.read(searchQueryProvider.notifier).state = '';
                         },
                       )
                     : null,
@@ -71,7 +71,7 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                 ),
               ),
               onChanged: (value) {
-                ref.read(searchQueryProvider.notifier).update(value);
+                ref.read(searchQueryProvider.notifier).state = value;
               },
             ),
           ),
@@ -93,9 +93,8 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                         label: const Text('All Events'),
                         selected: selectedEventId == null,
                         onSelected: (selected) {
-                          ref
-                              .read(selectedEventFilterProvider.notifier)
-                              .update(null);
+                          ref.read(selectedEventFilterProvider.notifier).state =
+                              null;
                         },
                       ),
                     ),
@@ -108,7 +107,7 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                           onSelected: (selected) {
                             ref
                                 .read(selectedEventFilterProvider.notifier)
-                                .update(selected ? event.id : null);
+                                .state = selected ? event.id : null;
                           },
                         ),
                       );

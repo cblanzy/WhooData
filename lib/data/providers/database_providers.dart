@@ -39,41 +39,19 @@ final allEventsProvider = StreamProvider<List<Event>>((ref) async* {
   // For now, we'll just return the initial list
 });
 
-/// Search query state
-class SearchQueryNotifier extends Notifier<String> {
-  @override
-  String build() => '';
-
-  void update(String value) => state = value;
-}
-
-final searchQueryProvider =
-    NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
-
-/// Selected event filter state
-class SelectedEventFilterNotifier extends Notifier<String?> {
-  @override
-  String? build() => null;
-
-  void update(String? value) => state = value;
-}
-
-final selectedEventFilterProvider =
-    NotifierProvider<SelectedEventFilterNotifier, String?>(
-  SelectedEventFilterNotifier.new,
+/// State provider for search query
+final searchQueryProvider = StateProvider.autoDispose<String>(
+  (ref) => '',
 );
 
-/// Date range filter state
-class DateRangeFilterNotifier extends Notifier<DateRangeFilter> {
-  @override
-  DateRangeFilter build() => const DateRangeFilter();
+/// State provider for selected event filter
+final selectedEventFilterProvider = StateProvider.autoDispose<String?>(
+  (ref) => null,
+);
 
-  void update(DateRangeFilter value) => state = value;
-}
-
-final dateRangeFilterProvider =
-    NotifierProvider<DateRangeFilterNotifier, DateRangeFilter>(
-  DateRangeFilterNotifier.new,
+/// State provider for date range filter - using a custom class for tuple
+final dateRangeFilterProvider = StateProvider.autoDispose<DateRangeFilter>(
+  (ref) => const DateRangeFilter(),
 );
 
 /// Provider for filtered contacts based on search and filters
