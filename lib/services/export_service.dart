@@ -85,9 +85,12 @@ class ExportService {
     final zipPath = p.join(tempDir.path, 'whoodata_export_$timestamp.zip');
 
     final encoder = ZipFileEncoder();
-    encoder.create(zipPath);
-    encoder.addDirectory(exportDir);
-    encoder.close();
+    encoder
+      ..create(zipPath)
+      // Add contents of exportDir, not the directory itself
+      ..addFile(jsonFile)
+      ..addDirectory(mediaDir)
+      ..close();
 
     // Clean up temporary export directory
     await exportDir.delete(recursive: true);
