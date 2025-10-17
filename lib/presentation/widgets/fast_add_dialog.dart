@@ -177,21 +177,32 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
 
     return Dialog(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 500),
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+        constraints: const BoxConstraints(
+          maxWidth: 500,
+          maxHeight: 700,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+              child: Text(
                 'Fast Add Contact',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 24),
+            ),
 
-              // First Name field
+            // Scrollable form content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // First Name field
               TextFormField(
                 controller: _firstNameController,
                 decoration: const InputDecoration(
@@ -323,9 +334,16 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
                 ),
               ),
               const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
-              // Action buttons
-              Row(
+            // Action buttons - fixed at bottom
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Card Scan button - opens wizard
@@ -352,8 +370,8 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

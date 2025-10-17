@@ -8,6 +8,7 @@ import 'package:whoodata/presentation/screens/events_screen.dart';
 import 'package:whoodata/presentation/screens/home_screen.dart';
 import 'package:whoodata/presentation/screens/settings_screen.dart';
 import 'package:whoodata/presentation/widgets/fast_add_dialog.dart';
+import 'package:whoodata/presentation/widgets/quick_add_choice_dialog.dart';
 
 final GoRouter appRouter = GoRouter(
   routes: [
@@ -45,9 +46,48 @@ final GoRouter appRouter = GoRouter(
   ],
 );
 
-/// Quick Add screen that shows the FastAddDialog as a full screen
-class _QuickAddScreen extends StatelessWidget {
+/// Quick Add screen that shows choice dialog then appropriate action
+class _QuickAddScreen extends StatefulWidget {
   const _QuickAddScreen();
+
+  @override
+  State<_QuickAddScreen> createState() => _QuickAddScreenState();
+}
+
+class _QuickAddScreenState extends State<_QuickAddScreen> {
+  bool _showingChoice = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Show choice dialog on mount
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showChoiceDialog();
+    });
+  }
+
+  Future<void> _showChoiceDialog() async {
+    final choice = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const QuickAddChoiceDialog(),
+    );
+
+    if (!mounted) return;
+
+    if (choice == 'scan') {
+      // Navigate to OCR wizard
+      context.go('/add');
+    } else if (choice == 'manual') {
+      // Show manual entry, stay on this screen
+      setState(() {
+        _showingChoice = false;
+      });
+    } else {
+      // User cancelled, go back home
+      context.go('/');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,14 +99,18 @@ class _QuickAddScreen extends StatelessWidget {
           onPressed: () => context.go('/'),
         ),
       ),
-      body: const Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: FastAddDialog(),
-          ),
-        ),
-      ),
+      body: _showingChoice
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : const Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: FastAddDialog(),
+                ),
+              ),
+            ),
     );
   }
 }

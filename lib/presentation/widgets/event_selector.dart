@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
+import 'package:whoodata/presentation/widgets/add_event_dialog.dart';
 
 /// Smart event selector widget
 /// - When tapped (not typing): Shows modal with all events, today's events at top
@@ -72,13 +73,23 @@ class _EventSelectorState extends ConsumerState<EventSelector> {
             if (textEditingValue.text.isEmpty) {
               return const Iterable<String>.empty();
             }
-            return events
+            final matchingEvents = events
                 .map((e) => e.name)
                 .where(
                   (name) => name.toLowerCase().contains(
                         textEditingValue.text.toLowerCase(),
                       ),
-                );
+                )
+                .toList();
+
+            // Add "Create Event" option if no exact match
+            final exactMatch = matchingEvents.any(
+              (name) => name.toLowerCase() == textEditingValue.text.toLowerCase(),
+            );
+            if (!exactMatch && textEditingValue.text.isNotEmpty) {
+              matchingEvents.add('+ Create Event: ${textEditingValue.text}');
+            }
+            return matchingEvents;
           },
           optionsViewBuilder: (context, onSelected, options) {
             return Align(
@@ -106,9 +117,22 @@ class _EventSelectorState extends ConsumerState<EventSelector> {
               ),
             );
           },
-          onSelected: (selection) {
-            widget.controller.text = selection;
-            widget.onSelected?.call(selection);
+          onSelected: (selection) async {
+            // Check if user selected the "Create Event" option
+            if (selection.startsWith('+ Create Event: ')) {
+              final eventName = selection.substring('+ Create Event: '.length);
+              final createdEventName = await showDialog<String>(
+                context: context,
+                builder: (context) => AddEventDialog(initialName: eventName),
+              );
+              if (createdEventName != null) {
+                widget.controller.text = createdEventName;
+                widget.onSelected?.call(createdEventName);
+              }
+            } else {
+              widget.controller.text = selection;
+              widget.onSelected?.call(selection);
+            }
           },
           fieldViewBuilder: (context, controller, focusNode, _) {
             // Sync with external controller
@@ -320,23 +344,75 @@ class _EventPickerSheetState extends State<_EventPickerSheet> {
               ],
 
               // No events message
-              if (_filteredEvents.isEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.all(32),
+              if (_filteredEvents.isEmpty && _searchQuery.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.all(32),
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.event_busy, size: 48, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
+                        const Icon(Icons.event_busy, size: 48, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        const Text(
                           'No events found',
                           style: TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: () async {
+                            final eventName = await showDialog<String>(
+                              context: context,
+                              builder: (context) => AddEventDialog(
+                                initialName: _searchQuery,
+                              ),
+                            );
+                            if (eventName != null && mounted) {
+                              // Pop with the created event name
+                              Navigator.of(context).pop(Event(
+                                id: '',
+                                name: eventName,
+                                eventDate: DateTime.now(),
+                                createdAt: DateTime.now(),
+                              ));
+                            }
+                          },
+                          icon: const Icon(Icons.add),
+                          label: Text('Create "$_searchQuery"'),
                         ),
                       ],
                     ),
                   ),
                 ),
               ],
+
+              // Create New Event button at bottom
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final eventName = await showDialog<String>(
+                      context: context,
+                      builder: (context) => AddEventDialog(
+                        initialName: _searchQuery.isNotEmpty ? _searchQuery : null,
+                      ),
+                    );
+                    if (eventName != null && mounted) {
+                      // Pop with the created event name
+                      Navigator.of(context).pop(Event(
+                        id: '',
+                        name: eventName,
+                        eventDate: DateTime.now(),
+                        createdAt: DateTime.now(),
+                      ));
+                    }
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Create New Event'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

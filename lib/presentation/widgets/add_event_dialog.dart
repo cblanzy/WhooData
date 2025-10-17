@@ -5,7 +5,9 @@ import 'package:whoodata/data/providers/database_providers.dart';
 
 /// Dialog for adding a new event
 class AddEventDialog extends ConsumerStatefulWidget {
-  const AddEventDialog({super.key});
+  const AddEventDialog({this.initialName, super.key});
+
+  final String? initialName;
 
   @override
   ConsumerState<AddEventDialog> createState() => _AddEventDialogState();
@@ -13,8 +15,14 @@ class AddEventDialog extends ConsumerStatefulWidget {
 
 class _AddEventDialogState extends ConsumerState<AddEventDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  late final TextEditingController _nameController;
   DateTime _eventDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+  }
 
   @override
   void dispose() {
@@ -47,10 +55,11 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
       );
 
       if (mounted) {
-        Navigator.of(context).pop(true);
+        final eventName = _nameController.text.trim();
+        Navigator.of(context).pop(eventName);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Event "${_nameController.text.trim()}" created!'),
+            content: Text('Event "$eventName" created!'),
           ),
         );
       }
