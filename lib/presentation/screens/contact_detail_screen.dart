@@ -132,7 +132,9 @@ class ContactDetailScreen extends ConsumerWidget {
                         context,
                         Icons.phone,
                         'Phone',
-                        contact.phone!,
+                        contact.phoneExtension != null
+                            ? '${contact.phone!} ext. ${contact.phoneExtension}'
+                            : contact.phone!,
                         onTap: () => _makePhoneCall(contact.phone!),
                       ),
                     if (contact.email != null)
@@ -142,6 +144,13 @@ class ContactDetailScreen extends ConsumerWidget {
                         'Email',
                         contact.email!,
                         onTap: () => _sendEmail(contact.email!),
+                      ),
+                    if (contact.company != null)
+                      _buildInfoTile(
+                        context,
+                        Icons.business,
+                        'Company',
+                        contact.company!,
                       ),
                     _buildInfoTile(
                       context,

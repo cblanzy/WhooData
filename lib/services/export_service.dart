@@ -167,6 +167,7 @@ class ExportService {
               EventsCompanion.insert(
                 id: eventMap['id'] as String,
                 name: eventMap['name'] as String,
+                eventDate: DateTime.parse(eventMap['eventDate'] as String),
                 createdAt: drift.Value(
                   DateTime.parse(eventMap['createdAt'] as String),
                 ),
@@ -224,7 +225,9 @@ class ExportService {
               lastName: contactMap['lastName'] as String?,
               middleInitial: contactMap['middleInitial'] as String?,
               phone: contactMap['phone'] as String?,
+              phoneExtension: contactMap['phoneExtension'] as String?,
               email: contactMap['email'] as String?,
+              company: contactMap['company'] as String?,
               dateMet: contactMap['dateMet'] != null
                   ? DateTime.parse(contactMap['dateMet'] as String)
                   : null,
@@ -250,7 +253,9 @@ class ExportService {
                 dateMet: DateTime.parse(contactMap['dateMet'] as String),
                 eventId: drift.Value(contactMap['eventId'] as String?),
                 phone: drift.Value(contactMap['phone'] as String?),
+                phoneExtension: drift.Value(contactMap['phoneExtension'] as String?),
                 email: drift.Value(contactMap['email'] as String?),
+                company: drift.Value(contactMap['company'] as String?),
                 notes: contactMap['notes'] as String? ?? '',
                 cardFrontPath: drift.Value(cardFrontPath),
                 cardBackPath: drift.Value(cardBackPath),
@@ -336,6 +341,7 @@ class ExportService {
     return {
       'id': event.id,
       'name': event.name,
+      'eventDate': event.eventDate.toIso8601String(),
       'createdAt': event.createdAt.toIso8601String(),
     };
   }
@@ -347,7 +353,9 @@ class ExportService {
       'lastName': contact.lastName,
       'middleInitial': contact.middleInitial,
       'phone': contact.phone,
+      'phoneExtension': contact.phoneExtension,
       'email': contact.email,
+      'company': contact.company,
       'dateMet': contact.dateMet.toIso8601String(),
       'eventId': contact.eventId,
       'notes': contact.notes,

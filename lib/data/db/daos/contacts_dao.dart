@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/db/tables.dart';
+import 'package:whoodata/utils/phone_formatter.dart';
 
 part 'contacts_dao.g.dart';
 
@@ -80,7 +81,9 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
     String middleInitial = '',
     String? eventId,
     String? phone,
+    String? phoneExtension,
     String? email,
+    String? company,
     String? notes,
     String? cardFrontPath,
     String? cardBackPath,
@@ -90,6 +93,9 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now();
+
+    // Format phone number to 555.555.5555
+    final formattedPhone = PhoneFormatter.format(phone);
 
     await into(contacts).insert(
       ContactsCompanion.insert(
@@ -101,8 +107,10 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
         createdAt: Value(now),
         updatedAt: Value(now),
         eventId: Value(eventId),
-        phone: Value(phone),
+        phone: Value(formattedPhone),
+        phoneExtension: Value(phoneExtension),
         email: Value(email),
+        company: Value(company),
         notes: notes ?? '',
         cardFrontPath: Value(cardFrontPath),
         cardBackPath: Value(cardBackPath),
@@ -123,7 +131,9 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
     DateTime? dateMet,
     String? eventId,
     String? phone,
+    String? phoneExtension,
     String? email,
+    String? company,
     String? notes,
     String? cardFrontPath,
     String? cardBackPath,
@@ -131,6 +141,9 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
     String? ocrRawText,
     double? ocrConfidence,
   }) async {
+    // Format phone number to 555.555.5555 if provided
+    final formattedPhone = phone != null ? PhoneFormatter.format(phone) : null;
+
     await (update(contacts)..where((t) => t.id.equals(id))).write(
       ContactsCompanion(
         firstName: firstName != null ? Value(firstName) : const Value.absent(),
@@ -139,8 +152,10 @@ class ContactsDao extends DatabaseAccessor<AppDatabase>
             middleInitial != null ? Value(middleInitial) : const Value.absent(),
         dateMet: dateMet != null ? Value(dateMet) : const Value.absent(),
         eventId: Value(eventId),
-        phone: Value(phone),
+        phone: Value(formattedPhone),
+        phoneExtension: Value(phoneExtension),
         email: Value(email),
+        company: Value(company),
         notes: notes != null ? Value(notes) : const Value.absent(),
         cardFrontPath: Value(cardFrontPath),
         cardBackPath: Value(cardBackPath),

@@ -11,9 +11,13 @@ const _uuid = Uuid();
 class EventsDao extends DatabaseAccessor<AppDatabase> with _$EventsDaoMixin {
   EventsDao(super.db);
 
-  /// Get all events sorted by creation date (newest first)
+  /// Get all events sorted by event date (newest first), then by name
   Future<List<Event>> getAllEvents() {
-    return (select(events)..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+    return (select(events)
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.eventDate),
+            (t) => OrderingTerm.asc(t.name),
+          ]))
         .get();
   }
 
@@ -30,7 +34,8 @@ class EventsDao extends DatabaseAccessor<AppDatabase> with _$EventsDaoMixin {
   }
 
   /// Create a new event with unique name validation
-  Future<String> createEvent(String name) async {
+  /// eventDate defaults to today if not provided
+  Future<String> createEvent(String name, {DateTime? eventDate}) async {
     // Check if event with same name exists (case-insensitive)
     final existing = await getEventByName(name);
     if (existing != null) {
@@ -42,6 +47,7 @@ class EventsDao extends DatabaseAccessor<AppDatabase> with _$EventsDaoMixin {
       EventsCompanion.insert(
         id: id,
         name: name,
+        eventDate: eventDate ?? DateTime.now(),
       ),
     );
     return id;
@@ -65,11 +71,29 @@ class EventsDao extends DatabaseAccessor<AppDatabase> with _$EventsDaoMixin {
   }
 
   /// Get or create event by name (useful for inline creation)
-  Future<String> getOrCreateEvent(String name) async {
+  Future<String> getOrCreateEvent(String name, {DateTime? eventDate}) async {
     final existing = await getEventByName(name);
     if (existing != null) {
       return existing.id;
     }
-    return createEvent(name);
+    return createEvent(name, eventDate: eventDate);
+  }
+
+  /// Get events by specific date
+  Future<List<Event>> getEventsByDate(DateTime date) {
+    // Compare only the date part (ignore time)
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+    return (select(events)
+          ..where((t) => t.eventDate.isBetweenValues(startOfDay, endOfDay))
+          ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        .get();
+  }
+
+  /// Get today's events
+  Future<List<Event>> getTodaysEvents() {
+    final now = DateTime.now();
+    return getEventsByDate(now);
   }
 }

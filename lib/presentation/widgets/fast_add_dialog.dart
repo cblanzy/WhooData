@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
+import 'package:whoodata/presentation/widgets/event_selector.dart';
+import 'package:whoodata/utils/phone_formatter.dart';
 
 /// Fast Add dialog for quickly adding a contact
 class FastAddDialog extends ConsumerStatefulWidget {
@@ -20,11 +22,13 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _middleInitialController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _phoneExtensionController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _companyController = TextEditingController();
   final _eventController = TextEditingController();
 
   DateTime _dateMet = DateTime.now();
-  String? _selectedEventId;
-  File? _cardFrontImage;
   File? _personPhoto;
 
   @override
@@ -32,6 +36,10 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _middleInitialController.dispose();
+    _phoneController.dispose();
+    _phoneExtensionController.dispose();
+    _emailController.dispose();
+    _companyController.dispose();
     _eventController.dispose();
     super.dispose();
   }
@@ -47,29 +55,6 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
       setState(() {
         _dateMet = picked;
       });
-    }
-  }
-
-  Future<void> _captureCardFront() async {
-    final source = await _showImageSourceDialog();
-    if (source == null) return;
-
-    final imageService = ref.read(imageServiceProvider);
-    try {
-      final image = source == ImageSource.camera
-          ? await imageService.captureFromCamera()
-          : await imageService.pickFromGallery();
-      if (image != null) {
-        setState(() {
-          _cardFrontImage = image;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error capturing image: $e')),
-        );
-      }
     }
   }
 
@@ -134,18 +119,8 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
         eventId = await eventsDao.getOrCreateEvent(_eventController.text);
       }
 
-      // Save images if present
-      String? cardFrontPath;
+      // Save person photo if present
       String? personPhotoPath;
-
-      if (_cardFrontImage != null) {
-        final contactId = DateTime.now().millisecondsSinceEpoch.toString();
-        cardFrontPath = await imageService.saveToMediaDirectory(
-          _cardFrontImage!,
-          'cards',
-          '${contactId}_front',
-        );
-      }
 
       if (_personPhoto != null) {
         final contactId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -163,7 +138,12 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
         dateMet: _dateMet,
         middleInitial: _middleInitialController.text,
         eventId: eventId,
-        cardFrontPath: cardFrontPath,
+        phone: _phoneController.text.isEmpty ? null : _phoneController.text,
+        phoneExtension: _phoneExtensionController.text.isEmpty
+            ? null
+            : _phoneExtensionController.text,
+        email: _emailController.text.isEmpty ? null : _emailController.text,
+        company: _companyController.text.isEmpty ? null : _companyController.text,
         personPhotoPath: personPhotoPath,
       );
 
@@ -194,7 +174,6 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM d, yyyy');
-    final eventsAsync = ref.watch(allEventsProvider);
 
     return Dialog(
       child: Container(
@@ -257,79 +236,60 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
               ),
               const SizedBox(height: 16),
 
-              // Event field with autocomplete
-              eventsAsync.when(
-                data: (events) {
-                  return Autocomplete<String>(
-                    optionsBuilder: (textEditingValue) {
-                      if (textEditingValue.text.isEmpty) {
-                        return const Iterable<String>.empty();
-                      }
-                      return events
-                          .map((e) => e.name)
-                          .where(
-                            (name) => name.toLowerCase().contains(
-                                  textEditingValue.text.toLowerCase(),
-                                ),
-                          );
-                    },
-                    optionsViewBuilder: (context, onSelected, options) {
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Material(
-                          elevation: 4,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxHeight: 200,
-                              maxWidth: 400,
-                            ),
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              shrinkWrap: true,
-                              itemCount: options.length,
-                              itemBuilder: (context, index) {
-                                final option = options.elementAt(index);
-                                return ListTile(
-                                  title: Text(option),
-                                  onTap: () => onSelected(option),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    onSelected: (selection) {
-                      _eventController.text = selection;
-                    },
-                    fieldViewBuilder: (context, controller, focusNode, _) {
-                      _eventController.text = controller.text;
-                      return TextFormField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: const InputDecoration(
-                          labelText: 'Event',
-                          border: OutlineInputBorder(),
-                          hintText: 'Type to search or create new',
-                        ),
-                      );
-                    },
-                  );
-                },
-                loading: () => TextFormField(
-                  controller: _eventController,
-                  decoration: const InputDecoration(
-                    labelText: 'Event',
-                    border: OutlineInputBorder(),
-                  ),
+              // Phone field
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(),
+                  hintText: '555.555.5555',
                 ),
-                error: (_, __) => TextFormField(
-                  controller: _eventController,
-                  decoration: const InputDecoration(
-                    labelText: 'Event',
-                    border: OutlineInputBorder(),
-                  ),
+                keyboardType: TextInputType.phone,
+                inputFormatters: [PhoneFormatter.inputFormatter],
+                validator: PhoneFormatter.validate,
+              ),
+              const SizedBox(height: 16),
+
+              // Phone Extension field
+              TextFormField(
+                controller: _phoneExtensionController,
+                decoration: const InputDecoration(
+                  labelText: 'Extension (optional)',
+                  border: OutlineInputBorder(),
+                  hintText: 'e.g., 1234',
                 ),
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+              ),
+              const SizedBox(height: 16),
+
+              // Email field
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                  hintText: 'Optional',
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+
+              // Company field
+              TextFormField(
+                controller: _companyController,
+                decoration: const InputDecoration(
+                  labelText: 'Company',
+                  border: OutlineInputBorder(),
+                  hintText: 'Optional',
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 16),
+
+              // Event field with smart selector
+              EventSelector(
+                controller: _eventController,
               ),
               const SizedBox(height: 16),
 
@@ -352,30 +312,15 @@ class _FastAddDialogState extends ConsumerState<FastAddDialog> {
               ),
               const SizedBox(height: 16),
 
-              // Optional photo buttons
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _captureCardFront,
-                    icon: Icon(
-                      _cardFrontImage != null ? Icons.check : Icons.add_a_photo,
-                    ),
-                    label: Text(_cardFrontImage != null
-                        ? 'Card Captured'
-                        : '+ Card Scan'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _capturePersonPhoto,
-                    icon: Icon(
-                      _personPhoto != null ? Icons.check : Icons.add_a_photo,
-                    ),
-                    label: Text(
-                      _personPhoto != null ? 'Photo Captured' : '+ Face Photo',
-                    ),
-                  ),
-                ],
+              // Optional photo button
+              OutlinedButton.icon(
+                onPressed: _capturePersonPhoto,
+                icon: Icon(
+                  _personPhoto != null ? Icons.check : Icons.add_a_photo,
+                ),
+                label: Text(
+                  _personPhoto != null ? 'Photo Captured' : '+ Face Photo',
+                ),
               ),
               const SizedBox(height: 24),
 

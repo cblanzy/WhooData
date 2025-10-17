@@ -257,6 +257,11 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (contact.company != null)
+              Text(
+                contact.company!,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
             if (contact.phone != null) Text(contact.phone!),
             Text(
               'Met: ${dateFormat.format(contact.dateMet)}',

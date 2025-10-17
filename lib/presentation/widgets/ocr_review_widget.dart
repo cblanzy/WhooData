@@ -19,6 +19,7 @@ class OcrReviewWidget extends StatefulWidget {
     required String? name,
     required String? phone,
     required String? email,
+    required String? company,
   }) onContinue;
   final VoidCallback onUseManual;
 
@@ -30,6 +31,7 @@ class _OcrReviewWidgetState extends State<OcrReviewWidget> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
+  late TextEditingController _companyController;
 
   @override
   void initState() {
@@ -37,6 +39,7 @@ class _OcrReviewWidgetState extends State<OcrReviewWidget> {
     _nameController = TextEditingController(text: widget.ocrResult.name);
     _phoneController = TextEditingController(text: widget.ocrResult.phone);
     _emailController = TextEditingController(text: widget.ocrResult.email);
+    _companyController = TextEditingController(text: widget.ocrResult.company);
   }
 
   @override
@@ -44,6 +47,7 @@ class _OcrReviewWidgetState extends State<OcrReviewWidget> {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _companyController.dispose();
     super.dispose();
   }
 
@@ -216,6 +220,24 @@ class _OcrReviewWidgetState extends State<OcrReviewWidget> {
           ),
           keyboardType: TextInputType.emailAddress,
         ),
+        const SizedBox(height: 16),
+
+        // Company field
+        TextField(
+          controller: _companyController,
+          decoration: InputDecoration(
+            labelText: 'Company',
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.business),
+            suffixIcon: widget.ocrResult.company != null
+                ? const Icon(Icons.auto_awesome, color: Colors.green)
+                : null,
+            helperText: widget.ocrResult.company != null
+                ? 'Auto-extracted from card'
+                : 'Enter manually',
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
         const SizedBox(height: 24),
 
         // Raw OCR text expandable
@@ -264,6 +286,9 @@ class _OcrReviewWidgetState extends State<OcrReviewWidget> {
                     email: _emailController.text.isEmpty
                         ? null
                         : _emailController.text,
+                    company: _companyController.text.isEmpty
+                        ? null
+                        : _companyController.text,
                   );
                 },
                 icon: const Icon(Icons.check),

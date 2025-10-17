@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:whoodata/data/db/app_database.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
+import 'package:whoodata/presentation/widgets/event_selector.dart';
+import 'package:whoodata/utils/phone_formatter.dart';
 
 /// Edit Contact dialog for updating an existing contact
 class EditContactDialog extends ConsumerStatefulWidget {
@@ -24,7 +26,9 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
   late final TextEditingController _middleInitialController;
   late final TextEditingController _eventController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _phoneExtensionController;
   late final TextEditingController _emailController;
+  late final TextEditingController _companyController;
   late final TextEditingController _notesController;
 
   late DateTime _dateMet;
@@ -46,7 +50,11 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
         TextEditingController(text: widget.contact.middleInitial);
     _eventController = TextEditingController();
     _phoneController = TextEditingController(text: widget.contact.phone ?? '');
+    _phoneExtensionController =
+        TextEditingController(text: widget.contact.phoneExtension ?? '');
     _emailController = TextEditingController(text: widget.contact.email ?? '');
+    _companyController =
+        TextEditingController(text: widget.contact.company ?? '');
     _notesController = TextEditingController(text: widget.contact.notes);
     _dateMet = widget.contact.dateMet;
 
@@ -73,7 +81,9 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
     _middleInitialController.dispose();
     _eventController.dispose();
     _phoneController.dispose();
+    _phoneExtensionController.dispose();
     _emailController.dispose();
+    _companyController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -252,7 +262,12 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
         dateMet: _dateMet,
         eventId: eventId,
         phone: _phoneController.text.isEmpty ? null : _phoneController.text,
+        phoneExtension: _phoneExtensionController.text.isEmpty
+            ? null
+            : _phoneExtensionController.text,
         email: _emailController.text.isEmpty ? null : _emailController.text,
+        company:
+            _companyController.text.isEmpty ? null : _companyController.text,
         notes: _notesController.text,
         cardFrontPath: cardFrontPath,
         cardBackPath: cardBackPath,
@@ -277,7 +292,6 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM d, yyyy');
-    final eventsAsync = ref.watch(allEventsProvider);
 
     return Dialog(
       child: Container(
@@ -355,9 +369,24 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
                         decoration: const InputDecoration(
                           labelText: 'Phone',
                           border: OutlineInputBorder(),
-                          hintText: 'Optional',
+                          hintText: '555.555.5555',
                         ),
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [PhoneFormatter.inputFormatter],
+                        validator: PhoneFormatter.validate,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Phone Extension field
+                      TextFormField(
+                        controller: _phoneExtensionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Extension (optional)',
+                          border: OutlineInputBorder(),
+                          hintText: 'e.g., 1234',
+                        ),
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
                       ),
                       const SizedBox(height: 16),
 
@@ -373,90 +402,21 @@ class _EditContactDialogState extends ConsumerState<EditContactDialog> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Event field with autocomplete
-                      eventsAsync.when(
-                        data: (events) {
-                          return Autocomplete<String>(
-                            optionsBuilder: (textEditingValue) {
-                              if (textEditingValue.text.isEmpty) {
-                                return const Iterable<String>.empty();
-                              }
-                              return events
-                                  .map((e) => e.name)
-                                  .where(
-                                    (name) => name.toLowerCase().contains(
-                                          textEditingValue.text.toLowerCase(),
-                                        ),
-                                  );
-                            },
-                            optionsViewBuilder: (context, onSelected, options) {
-                              return Align(
-                                alignment: Alignment.topLeft,
-                                child: Material(
-                                  elevation: 4,
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxHeight: 200,
-                                      maxWidth: 400,
-                                    ),
-                                    child: ListView.builder(
-                                      padding: EdgeInsets.zero,
-                                      shrinkWrap: true,
-                                      itemCount: options.length,
-                                      itemBuilder: (context, index) {
-                                        final option = options.elementAt(index);
-                                        return ListTile(
-                                          title: Text(option),
-                                          onTap: () => onSelected(option),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                            onSelected: (selection) {
-                              _eventController.text = selection;
-                            },
-                            fieldViewBuilder: (
-                              context,
-                              controller,
-                              focusNode,
-                              _,
-                            ) {
-                              // Sync with our event controller
-                              if (controller.text != _eventController.text) {
-                                controller.text = _eventController.text;
-                              }
-                              return TextFormField(
-                                controller: controller,
-                                focusNode: focusNode,
-                                decoration: const InputDecoration(
-                                  labelText: 'Event',
-                                  border: OutlineInputBorder(),
-                                  hintText: 'Type to search or create new',
-                                ),
-                                onChanged: (value) {
-                                  _eventController.text = value;
-                                },
-                              );
-                            },
-                          );
-                        },
-                        loading: () => TextFormField(
-                          controller: _eventController,
-                          decoration: const InputDecoration(
-                            labelText: 'Event',
-                            border: OutlineInputBorder(),
-                          ),
+                      // Company field
+                      TextFormField(
+                        controller: _companyController,
+                        decoration: const InputDecoration(
+                          labelText: 'Company',
+                          border: OutlineInputBorder(),
+                          hintText: 'Optional',
                         ),
-                        error: (_, __) => TextFormField(
-                          controller: _eventController,
-                          decoration: const InputDecoration(
-                            labelText: 'Event',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
+                        textCapitalization: TextCapitalization.words,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Event field with smart selector
+                      EventSelector(
+                        controller: _eventController,
                       ),
                       const SizedBox(height: 16),
 

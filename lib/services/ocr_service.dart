@@ -16,6 +16,7 @@ class OcrService {
       final email = _extractEmail(recognizedText.text);
       final phone = _extractPhone(recognizedText.text);
       final name = _extractName(recognizedText.text, recognizedText.blocks);
+      final company = _extractCompany(recognizedText.text);
 
       // Calculate average confidence from all text elements
       var totalConfidence = 0.0;
@@ -36,6 +37,7 @@ class OcrService {
         name: name,
         phone: phone,
         email: email,
+        company: company,
         rawText: recognizedText.text,
         confidence: avgConfidence,
       );
@@ -44,6 +46,7 @@ class OcrService {
         name: null,
         phone: null,
         email: null,
+        company: null,
         rawText: '',
         confidence: 0.0,
         error: e.toString(),
@@ -133,6 +136,45 @@ class OcrService {
     return capitalizedWords.join(' ');
   }
 
+  /// Extract company name from text
+  /// Looks for lines containing company suffixes like Inc., LLC, Corp, etc.
+  String? _extractCompany(String text) {
+    // Common company suffixes (case insensitive)
+    final companySuffixes = [
+      r'Inc\.?',
+      r'LLC',
+      r'L\.L\.C\.?',
+      r'Corp\.?',
+      r'Corporation',
+      r'Ltd\.?',
+      r'Limited',
+      r'Co\.?',
+      r'Company',
+      r'Group',
+      r'LLP',
+      r'P\.C\.?',
+      r'PLLC',
+    ];
+
+    // Create regex pattern to match lines with company suffixes
+    final pattern = RegExp(
+      '(.+?)\\s+(${companySuffixes.join('|')})',
+      caseSensitive: false,
+      multiLine: true,
+    );
+
+    final match = pattern.firstMatch(text);
+    if (match != null) {
+      // Return the full company name (including suffix)
+      final companyName = match.group(0)?.trim();
+      if (companyName != null && companyName.isNotEmpty) {
+        return companyName;
+      }
+    }
+
+    return null;
+  }
+
   /// Clean up resources
   void dispose() {
     _textRecognizer.close();
@@ -147,18 +189,21 @@ class OcrResult {
     this.name,
     this.phone,
     this.email,
+    this.company,
     this.error,
   });
 
   final String? name;
   final String? phone;
   final String? email;
+  final String? company;
   final String rawText;
   final double confidence; // 0.0 to 1.0
   final String? error;
 
   bool get hasError => error != null;
-  bool get hasAnyData => name != null || phone != null || email != null;
+  bool get hasAnyData =>
+      name != null || phone != null || email != null || company != null;
 
   /// Get confidence as percentage (0-100)
   int get confidencePercent => (confidence * 100).round();
@@ -166,6 +211,6 @@ class OcrResult {
   @override
   String toString() {
     return 'OcrResult(name: $name, phone: $phone, email: $email, '
-        'confidence: $confidencePercent%)';
+        'company: $company, confidence: $confidencePercent%)';
   }
 }

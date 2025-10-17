@@ -7,8 +7,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:whoodata/data/providers/database_providers.dart';
 import 'package:whoodata/presentation/routes.dart';
+import 'package:whoodata/presentation/widgets/event_selector.dart';
 import 'package:whoodata/presentation/widgets/ocr_review_widget.dart';
 import 'package:whoodata/services/ocr_service.dart';
+import 'package:whoodata/utils/phone_formatter.dart';
 
 /// 4-step wizard for adding contacts with optional business card OCR
 class AddContactWizardScreen extends ConsumerStatefulWidget {
@@ -36,11 +38,12 @@ class _AddContactWizardScreenState
   final _lastNameController = TextEditingController();
   final _middleInitialController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _phoneExtensionController = TextEditingController();
   final _emailController = TextEditingController();
+  final _companyController = TextEditingController();
   final _notesController = TextEditingController();
   final _eventController = TextEditingController();
   DateTime _dateMet = DateTime.now();
-  String? _selectedEventId;
 
   // Step 3: Person Photo
   File? _personPhoto;
@@ -55,7 +58,9 @@ class _AddContactWizardScreenState
     _lastNameController.dispose();
     _middleInitialController.dispose();
     _phoneController.dispose();
+    _phoneExtensionController.dispose();
     _emailController.dispose();
+    _companyController.dispose();
     _notesController.dispose();
     _eventController.dispose();
     super.dispose();
@@ -184,7 +189,12 @@ class _AddContactWizardScreenState
       return OcrReviewWidget(
         cardFrontImage: _cardFrontImage!,
         ocrResult: _ocrResult!,
-        onContinue: ({required name, required phone, required email}) {
+        onContinue: ({
+          required name,
+          required phone,
+          required email,
+          required company,
+        }) {
           setState(() {
             // Parse name into first/last
             if (name != null) {
@@ -198,6 +208,7 @@ class _AddContactWizardScreenState
             }
             _phoneController.text = phone ?? '';
             _emailController.text = email ?? '';
+            _companyController.text = company ?? '';
             _ocrRawText = _ocrResult!.rawText;
             _ocrConfidence = _ocrResult!.confidence;
           });
@@ -216,7 +227,6 @@ class _AddContactWizardScreenState
   }
 
   Widget _buildManualEntryForm() {
-    final eventsAsync = ref.watch(allEventsProvider);
     final dateFormat = DateFormat('MMM d, yyyy');
 
     return Form(
@@ -277,9 +287,24 @@ class _AddContactWizardScreenState
             decoration: const InputDecoration(
               labelText: 'Phone',
               border: OutlineInputBorder(),
-              hintText: 'Optional',
+              hintText: '555.555.5555',
             ),
             keyboardType: TextInputType.phone,
+            inputFormatters: [PhoneFormatter.inputFormatter],
+            validator: PhoneFormatter.validate,
+          ),
+          const SizedBox(height: 16),
+
+          // Phone Extension
+          TextFormField(
+            controller: _phoneExtensionController,
+            decoration: const InputDecoration(
+              labelText: 'Extension (optional)',
+              border: OutlineInputBorder(),
+              hintText: 'e.g., 1234',
+            ),
+            keyboardType: TextInputType.number,
+            maxLength: 6,
           ),
           const SizedBox(height: 16),
 
@@ -295,50 +320,21 @@ class _AddContactWizardScreenState
           ),
           const SizedBox(height: 16),
 
-          // Event autocomplete
-          eventsAsync.when(
-            data: (events) {
-              return Autocomplete<String>(
-                optionsBuilder: (textEditingValue) {
-                  if (textEditingValue.text.isEmpty) {
-                    return const Iterable<String>.empty();
-                  }
-                  return events
-                      .map((e) => e.name)
-                      .where(
-                        (name) => name.toLowerCase().contains(
-                              textEditingValue.text.toLowerCase(),
-                            ),
-                      );
-                },
-                fieldViewBuilder: (context, controller, focusNode, _) {
-                  _eventController.text = controller.text;
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(
-                      labelText: 'Event',
-                      border: OutlineInputBorder(),
-                      hintText: 'Type to search or create new',
-                    ),
-                  );
-                },
-              );
-            },
-            loading: () => TextFormField(
-              controller: _eventController,
-              decoration: const InputDecoration(
-                labelText: 'Event',
-                border: OutlineInputBorder(),
-              ),
+          // Company
+          TextFormField(
+            controller: _companyController,
+            decoration: const InputDecoration(
+              labelText: 'Company',
+              border: OutlineInputBorder(),
+              hintText: 'Optional',
             ),
-            error: (_, __) => TextFormField(
-              controller: _eventController,
-              decoration: const InputDecoration(
-                labelText: 'Event',
-                border: OutlineInputBorder(),
-              ),
-            ),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 16),
+
+          // Event selector (replacing autocomplete)
+          EventSelector(
+            controller: _eventController,
           ),
           const SizedBox(height: 16),
 
@@ -751,7 +747,12 @@ class _AddContactWizardScreenState
         dateMet: _dateMet,
         eventId: eventId,
         phone: _phoneController.text.isEmpty ? null : _phoneController.text,
+        phoneExtension: _phoneExtensionController.text.isEmpty
+            ? null
+            : _phoneExtensionController.text,
         email: _emailController.text.isEmpty ? null : _emailController.text,
+        company:
+            _companyController.text.isEmpty ? null : _companyController.text,
         notes: _notesController.text,
         cardFrontPath: cardFrontPath,
         cardBackPath: cardBackPath,
